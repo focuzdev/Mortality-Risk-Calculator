@@ -1,10 +1,1 @@
-# If it's a file
-rm docs
-
-# If it's a directory
-#rm -rf docs
-
-# Then commit and push the deletion
-git add .
-git commit -m "Remove docs folder"
-git push
+git rm --cached docs
