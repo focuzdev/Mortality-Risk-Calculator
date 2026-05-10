@@ -2,7 +2,7 @@
 rm docs
 
 # If it's a directory
-rm -rf docs
+#rm -rf docs
 
 # Then commit and push the deletion
 git add .
