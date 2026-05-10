@@ -60,8 +60,6 @@ It implements a validated **Cox Proportional Hazard (CPH) model** to compute the
 ## 🌐 Live Demo
 
 > **[🚀 Launch App on Streamlit Cloud](https://mortality-risk-calculator-app.streamlit.app/#predict-icu-mortality-with-precision)**
->
-> *(Replace this URL with your deployed Streamlit Cloud link)*
 
 ---
 
@@ -204,6 +202,7 @@ The interactive survival chart now renders a **shaded 95% CI band** around the c
 ---
 
 ## 📸 Screenshots
+<img width="2530" height="1064" alt="image" src="https://github.com/user-attachments/assets/741499b0-25a1-4f9c-86e8-8718ebe0d987" />
 
 > *(Add screenshots of your deployed app here)*
 
