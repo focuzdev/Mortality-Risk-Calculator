@@ -210,7 +210,7 @@ The interactive survival chart now renders a **shaded 95% CI band** around the c
 
 | Results — Risk Banner & CI | Results — Mortality Curve |
 |:---:|:---:|
-| ![Results Banner](docs/screenshot_results_banner.png) | ![Curve](docs/screenshot_curve.png) |
+| ![Results Banner](docs/screenshot_results_banner.png) |
 
 ---
 
