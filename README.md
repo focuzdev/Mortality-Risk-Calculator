@@ -204,8 +204,6 @@ The interactive survival chart now renders a **shaded 95% CI band** around the c
 ## 📸 Screenshots
 <img width="2530" height="1064" alt="image" src="https://github.com/user-attachments/assets/741499b0-25a1-4f9c-86e8-8718ebe0d987" />
 
-> *(Add screenshots of your deployed app here)*
-
 | Home Page (Dark) | Calculator — Patient Details |
 |:---:|:---:|
 | ![Home Dark](docs/screenshot_home_dark.png) | ![Calculator](docs/screenshot_calculator.png) |
@@ -414,7 +412,7 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 ```
 MIT License
 
-Copyright (c) 2025 [Your Name / Institution]
+Copyright (c) 2025 [ICU| Hospital Universiti Sains Malaysia]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
