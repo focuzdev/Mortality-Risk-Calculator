@@ -444,12 +444,6 @@ with col_logo:
       </div>
     </div>""", unsafe_allow_html=True)
 
-with col_badge:
-    st.markdown(
-        f'''<div style="display:flex;align-items:center;height:100%;padding-top:14px;">
-        <span class="icu-badge">Sept 2025 · Validated</span></div>''',
-        unsafe_allow_html=True)
-
 with col_theme:
     # Single icon button — no pill, no label, no switch widget
     if st.button(T["theme_icon"], key="theme_btn",
