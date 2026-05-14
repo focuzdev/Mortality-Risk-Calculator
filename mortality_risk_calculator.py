@@ -621,7 +621,6 @@ st.markdown(f"""
     </div>
   </div>
   <div class="icu-nav-right">
-    <span class="icu-badge">Version 2.0 &nbsp;|&nbsp; Sept 2025</span>
     <div class="theme-btn" id="theme-html-btn" title="{theme_tip}"
          onclick="document.getElementById('theme-trigger').click()">
       {theme_icon}
