@@ -3,7 +3,7 @@
 <!-- LOGO / BANNER -->
 <img src="https://img.shields.io/badge/ICU%20Mortality%20Risk-Calculator-00c9b1?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEyIDIxUzMgMTQuNSAzIDguNUMzIDUuNDIgNS40MiAzIDguNSAzQzEwLjI0IDMgMTEuODEgMy44MSAxMiA0QzEyLjE5IDMuODEgMTMuNzYgMyAxNS41IDNDMTguNTggMyAyMSA1LjQyIDIxIDguNUMyMSAxNC41IDEyIDIxIDEyIDIxWiIgZmlsbD0id2hpdGUiLz48L3N2Zz4=" alt="ICU Mortality Risk Calculator"/>
 
-# 🫀 ICU Mortality Risk Calculator
+#  ICU Mortality Risk Calculator
 
 ### Elderly Patient · Cox Proportional Hazard Model · v2.0
 
