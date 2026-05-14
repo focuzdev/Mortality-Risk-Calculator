@@ -607,13 +607,6 @@ st.markdown(f"""
       <div class="nav-sub">Cox Proportional Hazard Model  |  Validated for Patients Aged 65 and Above</div>
     </div>
   </div>
-  <div class="icu-nav-right">
-    <span class="icu-badge">Version 2.0 &nbsp;|&nbsp; Sept 2025</span>
-    <div class="theme-btn" id="theme-html-btn" title="{theme_tip}"
-         onclick="window.location.href='?toggle_theme=1'">
-      {theme_icon}
-    </div>
-  </div>
 </div>
 """, unsafe_allow_html=True)
 
