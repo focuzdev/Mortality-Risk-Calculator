@@ -709,12 +709,12 @@ if page == "home":
         </div>
         """, unsafe_allow_html=True)
 
-        b1, b2 = st.columns([3, 1])
+        b1, b2 = st.columns([2, 1])
         with b1:
-            if st.button("Begin Patient Assessment", type="primary", use_container_width=True):
+            if st.button("🔬  Begin Patient Assessment", type="primary", use_container_width=True):
                 st.session_state.page = "calculator"; st.rerun()
         with b2:
-            if st.button("About", use_container_width=True):
+            if st.button("📖  How It Works", use_container_width=True):
                 st.session_state.page = "about"; st.rerun()
 
         st.markdown(f"""
