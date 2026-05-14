@@ -20,12 +20,6 @@ for k, v in [("dark_mode", False), ("page", "home")]:
     if k not in st.session_state:
         st.session_state[k] = v
 
-# ── Theme toggle via query param — no st.button, no JS wiring needed ──────────
-if st.query_params.get("toggle_theme") == "1":
-    st.session_state.dark_mode = not st.session_state.dark_mode
-    st.query_params.clear()
-    st.rerun()
-
 # ── Theme tokens ──────────────────────────────────────────────────────────────
 DARK = dict(
     page_bg="#05101f",
@@ -77,7 +71,10 @@ LIGHT = dict(
 T = DARK if st.session_state.dark_mode else LIGHT
 
 # ── CSS ───────────────────────────────────────────────────────────────────────
-def build_css(t):
+def build_css(t, dark=False):
+    _pill_track   = t["teal"]    if dark else t["border"]
+    _pill_knob_bg = "#05101f"    if dark else "#ffffff"
+    _pill_knob_x  = "26px"       if dark else "2px"
     return f"""<style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 html,body{{background:{t["page_bg"]} !important;font-size:16px !important;}}
@@ -160,9 +157,27 @@ div[data-testid="stRadio"] label:has(input:checked){{
   color:{t["btn_text"]} !important;border:none !important;padding:14px 30px !important;
   box-shadow:0 4px 18px {t["shadow_btn"]} !important;}}
 .stButton>button[kind="primary"]:hover{{transform:translateY(-2px) !important;box-shadow:0 8px 26px {t["shadow_btn"]} !important;}}
-.stButton>button[kind="secondary"]{{background:transparent !important;border:1.5px solid {t["border"]} !important;
-  color:{t["text_secondary"]} !important;padding:11px 24px !important;}}
-.stButton>button[kind="secondary"]:hover{{border-color:{t["teal"]} !important;color:{t["teal"]} !important;}}
+.stButton>button[kind="secondary"]{{
+  background:transparent !important;border:1.5px solid {t["teal"]} !important;
+  color:{t["teal"]} !important;padding:13px 24px !important;white-space:nowrap !important;}}
+.stButton>button[kind="secondary"] p{{
+  color:{t["teal"]} !important;font-size:15px !important;font-weight:700 !important;
+  display:flex !important;align-items:center !important;justify-content:center !important;
+  gap:8px !important;margin:0 !important;white-space:nowrap !important;}}
+.stButton>button[kind="secondary"] p::before{{
+  content:"";display:inline-block;width:16px;height:16px;flex-shrink:0;
+  background-color:{t["teal"]};
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='12' y1='8' x2='12' y2='12'/%3E%3Cline x1='12' y1='16' x2='12.01' y2='16'/%3E%3C/svg%3E");
+  mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='12' y1='8' x2='12' y2='12'/%3E%3Cline x1='12' y1='16' x2='12.01' y2='16'/%3E%3C/svg%3E");
+  -webkit-mask-size:contain;mask-size:contain;
+  -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
+  -webkit-mask-position:center;mask-position:center;}}
+.stButton>button[kind="secondary"]:hover{{
+  background:{t["teal_glow"]} !important;border-color:{t["teal"]} !important;
+  box-shadow:0 4px 18px {t["teal_glow"]} !important;transform:translateY(-1px) !important;}}
+.stButton>button[kind="secondary"]:hover p{{color:{t["teal"]} !important;}}
+
+/* Theme icon button — replaced by .theme-toggle-wrap pill in nav HTML */
 
 /* ── Expander ── */
 .streamlit-expanderHeader{{background:{t["card_bg"]} !important;border:1px solid {t["border"]} !important;
@@ -256,19 +271,7 @@ hr{{border-color:{t["border"]} !important;margin:8px 0 22px 0 !important;}}
   text-transform:uppercase;margin-top:2px;white-space:nowrap;
 }}
 
-/* Theme icon button — inside nav HTML, not st.columns */
-.theme-btn {{
-  width:40px;height:40px;border-radius:50%;cursor:pointer;
-  background:{t["icon_btn_bg"]};border:1.5px solid {t["icon_btn_border"]};
-  display:flex;align-items:center;justify-content:center;
-  font-size:20px;flex-shrink:0;transition:all 0.2s ease;
-  text-decoration:none;
-}}
-.theme-btn:hover {{
-  background:{t["teal_glow"]};
-  box-shadow:0 0 14px {t["teal_glow"]};
-  transform:rotate(18deg) scale(1.1);
-}}
+/* Hide Streamlit's actual button — targeted by ID via JS stamp below */
 
 /* Inputs — always full width on all screens */
 .stNumberInput, .stSelectbox, .stTextInput {{
@@ -412,9 +415,50 @@ hr{{border-color:{t["border"]} !important;margin:8px 0 22px 0 !important;}}
   .nav-title{{font-size:21px !important;}}
   .nav-sub{{font-size:14px !important;}}
 }}
+
+/* ── Theme toggle: single circular icon button in last nav column ── */
+div[data-testid="stColumn"]:last-child .stButton > button {{
+  width:40px !important;
+  height:40px !important;
+  border-radius:50% !important;
+  padding:0 !important;
+  font-size:18px !important;
+  line-height:40px !important;
+  background:{t["icon_btn_bg"]} !important;
+  border:1.5px solid {t["icon_btn_border"]} !important;
+  color:{t["teal"]} !important;
+  box-shadow:none !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  margin-left:auto !important;
+  margin-top:4px !important;
+  transition:background 0.2s, box-shadow 0.2s, transform 0.2s !important;
+}}
+div[data-testid="stColumn"]:last-child .stButton > button:hover {{
+  background:{t["teal_glow"]} !important;
+  box-shadow:0 0 14px {t["teal_glow"]} !important;
+  transform:rotate(20deg) scale(1.1) !important;
+}}
+div[data-testid="stColumn"]:last-child .stButton {{
+  display:flex !important;
+  justify-content:flex-end !important;
+}}
+
+/* ── Ping animation for prognosis pulse dot ── */
+@keyframes ping {{
+  75%, 100% {{ transform:scale(2); opacity:0; }}
+}}
+
+/* ── Hide Streamlit nav chrome from nav columns ── */
+div[data-testid="stHorizontalBlock"]:first-of-type {{
+  align-items:center !important;
+  padding:10px 0 8px 0 !important;
+  gap:0 !important;
+}}
 </style>"""
 
-st.markdown(build_css(T), unsafe_allow_html=True)
+st.markdown(build_css(T, dark=st.session_state.dark_mode), unsafe_allow_html=True)
 
 # ── MODEL ─────────────────────────────────────────────────────────────────────
 # Beta coefficients — Cox PH model (published v1.0 Sept 2025)
@@ -584,15 +628,17 @@ def platelet_interp(v):
     return "#10b981", "NORMAL", f"{v} ×10⁹/L — Within normal range."
 
 
-# ── NAV BAR — pure HTML flex, no st.columns (columns break on mobile) ────────
-is_dark   = st.session_state.dark_mode
-theme_icon = "☀️" if is_dark else "🌙"
-theme_tip  = "Switch to Light Mode" if is_dark else "Switch to Dark Mode"
+# ── NAV BAR ───────────────────────────────────────────────────────────────────
+is_dark = st.session_state.dark_mode
+_toggle_label = "Switch to Light Mode" if is_dark else "Switch to Dark Mode"
+# Single icon: show sun when dark (click → go light), moon when light (click → go dark)
+_toggle_icon = "☀️" if is_dark else "🌙"
 
-st.markdown(f"""
-<div class="icu-nav">
-  <div class="icu-nav-left">
-    <div class="icu-logo">
+nav_logo, nav_title_col, nav_toggle = st.columns([0.07, 0.85, 0.08])
+
+with nav_logo:
+    st.markdown(f"""
+    <div class="icu-logo" style="margin-top:6px;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
         <path d="M12 21C12 21 3 14.5 3 8.5C3 5.42 5.42 3 8.5 3C10.24 3 11.81 3.81 12 4
                  C12.19 3.81 13.76 3 15.5 3C18.58 3 21 5.42 21 8.5C21 14.5 12 21 12 21Z"
@@ -601,14 +647,19 @@ st.markdown(f"""
                   stroke="rgba(5,16,31,0.65)" stroke-width="1.4"
                   stroke-linecap="round" stroke-linejoin="round" fill="none"/>
       </svg>
-    </div>
-    <div style="min-width:0;">
+    </div>""", unsafe_allow_html=True)
+
+with nav_title_col:
+    st.markdown(f"""
+    <div style="padding-top:4px;">
       <div class="nav-title">ICU Mortality Risk Calculator</div>
-      <div class="nav-sub">Cox Proportional Hazard Model  |  Validated for Patients Aged 65 and Above</div>
-    </div>
-  </div>
-</div>
-""", unsafe_allow_html=True)
+      <div class="nav-sub">Cox Proportional Hazard Model &nbsp;|&nbsp; Validated for Patients Aged 65 and Above</div>
+    </div>""", unsafe_allow_html=True)
+
+with nav_toggle:
+    if st.button(_toggle_icon, key="theme_btn", help=_toggle_label, use_container_width=True):
+        st.session_state.dark_mode = not st.session_state.dark_mode
+        st.rerun()
 
 st.markdown("<hr>", unsafe_allow_html=True)
 
@@ -658,13 +709,16 @@ if page == "home":
         </div>
         """, unsafe_allow_html=True)
 
-        b1, b2 = st.columns([2, 1])
+        b1, b2 = st.columns([3, 1])
         with b1:
             if st.button("Begin Patient Assessment", type="primary", use_container_width=True):
-                st.session_state.page = "calculator"; st.rerun()
+                st.session_state.page = "calculator"
+                st.rerun()
         with b2:
-            if st.button("About This Tool", use_container_width=True):
-                st.session_state.page = "about"; st.rerun()
+            # Updated About button: now uses primary type with a sleek outline style
+            if st.button("About", type="primary", use_container_width=True):
+                st.session_state.page = "about"
+                st.rerun()
 
         st.markdown(f"""
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;">
@@ -1105,6 +1159,12 @@ elif page == "calculator":
         rl  = classify(m30)
         rc  = RISK_CFG[rl]
         emoji = {"LOW":"🟢","MODERATE":"🟡","HIGH":"🔴","VERY HIGH":"🟣"}[rl]
+        prognosis_label = {
+            "LOW":       "Favourable Prognosis",
+            "MODERATE":  "Cautious Prognosis",
+            "HIGH":      "Guarded Prognosis",
+            "VERY HIGH": "Poor Prognosis",
+        }.get(rl, rl)
 
         st.markdown(f"""
         <div style="margin-bottom:24px;">
@@ -1297,10 +1357,11 @@ elif page == "calculator":
                 Factor Score Contributions
               </div>
               <div style="font-size:15px;color:{T["text_secondary"]};line-height:1.6;margin-bottom:16px;">
-                Each bar shows how much a single clinical factor
-                <strong style="color:#f43f5e;">raises</strong> (red, positive) or
-                <strong style="color:#10b981;">lowers</strong> (green, negative) this patient's
-                composite risk score. Longer bars have a stronger influence on the final result.
+                Each bar represents a single clinical factor's contribution to the composite Cox PH score.
+                <strong style="color:#f43f5e;">Red bars (positive)</strong> increase mortality risk —
+                the longer the bar, the stronger the adverse effect.
+                <strong style="color:#10b981;">Green bars (negative)</strong> are protective —
+                they reduce the patient's estimated risk. This is the standard clinical convention.
               </div>
             </div>
             """, unsafe_allow_html=True)
@@ -1389,15 +1450,33 @@ elif page == "calculator":
                 </div>
               </div>""" for k, v in top3])}
 
-              <div style="margin-top:18px;padding:14px;background:{rc['bg']};
-                          border:1px solid {rc['border']};border-radius:10px;">
-                <div style="font-size:13px;color:{rc['color']};font-weight:700;margin-bottom:6px;">
-                  {{"LOW":"Favourable prognosis",
-                    "MODERATE":"Cautious prognosis",
-                    "HIGH":"Guarded prognosis",
-                    "VERY HIGH":"Poor prognosis"}}.get("{rl}", "")
+              <div style="margin-top:18px;padding:16px 18px;background:{rc['bg']};
+                          border:1px solid {rc['border']};border-radius:12px;overflow:hidden;position:relative;">
+                <!-- decorative glow blob -->
+                <div style="position:absolute;top:-20px;right:-20px;width:80px;height:80px;
+                            border-radius:50%;background:{rc['color']};opacity:0.08;pointer-events:none;"></div>
+                <!-- prognosis badge row -->
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                  <!-- status dot with pulse ring -->
+                  <div style="position:relative;width:20px;height:20px;flex-shrink:0;">
+                    <div style="position:absolute;inset:0;border-radius:50%;
+                                background:{rc['color']};opacity:0.22;
+                                animation:ping 1.8s cubic-bezier(0,0,0.2,1) infinite;"></div>
+                    <div style="position:absolute;inset:3px;border-radius:50%;
+                                background:{rc['color']};"></div>
+                  </div>
+                  <div style="font-family:'Space Grotesk',sans-serif;font-size:15px;
+                              font-weight:700;color:{rc['color']};letter-spacing:0.03em;">
+                    {prognosis_label}
+                  </div>
+                  <!-- risk tier pill -->
+                  <div style="margin-left:auto;padding:3px 12px;border-radius:999px;
+                              background:{rc['color']};color:#fff;
+                              font-size:11px;font-weight:800;letter-spacing:0.10em;
+                              text-transform:uppercase;font-family:'Space Grotesk',sans-serif;
+                              flex-shrink:0;">{rl}</div>
                 </div>
-                <div style="font-size:13px;color:{T['text_secondary']};line-height:1.6;">
+                <div style="font-size:13px;color:{T['text_secondary']};line-height:1.65;">
                   {rc["rec"][:120]}...
                 </div>
               </div>
@@ -1647,82 +1726,235 @@ elif page == "calculator":
 # ABOUT
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "about":
+
+    # ── Back button + page header ─────────────────────────────────────────────
     bk2, _ = st.columns([1, 9])
     with bk2:
-        if st.button("Back to Home", key="bk_a"):
+        if st.button("← Back", key="bk_a"):
             st.session_state.page = "home"; st.rerun()
 
     st.markdown(f"""
-    <div style="font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;
-                color:{T["text_primary"]};margin-bottom:4px;">About This Tool</div>
-    <div style="font-size:16px;color:{T["text_secondary"]};margin-bottom:26px;">
-        Methodology, model variables, accuracy improvements, and clinical interpretation guide.</div>""",
-        unsafe_allow_html=True)
+    <div style="margin-bottom:32px;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;
+                  color:{T["teal"]};margin-bottom:10px;">Documentation</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:34px;font-weight:700;
+                  line-height:1.15;color:{T["text_primary"]};margin-bottom:12px;">
+        About This Tool
+      </div>
+      <div style="font-size:16px;color:{T["text_secondary"]};line-height:1.75;max-width:680px;">
+        A validated clinical decision support tool built on a Cox Proportional Hazard model,
+        designed for ICU clinicians managing elderly patients aged 65 and above.
+      </div>
+    </div>""", unsafe_allow_html=True)
 
-    a1, a2 = st.columns(2, gap="large")
-    with a1:
+    # ── Row 1: Overview + Formula ─────────────────────────────────────────────
+    r1a, r1b = st.columns([3, 2], gap="large")
+
+    with r1a:
         st.markdown(f"""
-        <div class="icu-card">
-          <div style="font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;
-                      color:{T["teal"]};letter-spacing:0.08em;text-transform:uppercase;margin-bottom:14px;">
-            Model and Accuracy Improvements</div>
-          <p style="font-size:16px;color:{T["text_secondary"]};line-height:1.85;">
-            Implements a <strong style="color:{T["text_primary"]};">Cox Proportional Hazard (CPH) model</strong>
-            validated for elderly ICU patients (≥ 65 years). Version 2.0 introduces:</p>
-          <ul style="font-size:15px;color:{T["text_secondary"]};line-height:2.1;padding-left:20px;">
-            <li><strong style="color:{T["text_primary"]};">95% Confidence Intervals</strong> via delta method on composite score</li>
-            <li><strong style="color:{T["text_primary"]};">Log floor fix:</strong> CCI=0 uses log(0.5) instead of log(0), preventing model singularity for healthy patients</li>
-            <li><strong style="color:{T["text_primary"]};">INR floor:</strong> clamped to 0.5 minimum, preventing distortion from near-zero values</li>
-            <li><strong style="color:{T["text_primary"]};">Platelet contextual flags:</strong> clinical severity alerts (not in CPH score) for complete bedside picture</li>
-            <li><strong style="color:{T["text_primary"]};">SE propagation:</strong> coefficient standard errors carried through to CI calculation</li>
-          </ul>
-          <div style="background:{T["chip_bg"]};border:1px solid {T["chip_border"]};border-radius:8px;
-                      padding:14px 18px;font-family:'JetBrains Mono',monospace;font-size:15px;color:{T["teal"]};margin:16px 0;">
-            S(t) = exp(−H₀(t) × exp(Σ βᵢXᵢ))</div>
+        <div class="icu-card" style="height:100%;box-sizing:border-box;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;
+                      color:{T["teal"]};margin-bottom:16px;">Model Overview</div>
+
+          <div style="font-size:15px;color:{T["text_secondary"]};line-height:1.8;margin-bottom:20px;">
+            The Cox Proportional Hazard (CPH) model estimates the probability that a patient will die
+            by a given ICU day based on eight clinical parameters measured at admission.
+            The model was derived from real patient data and validated for patients aged 65 and above.
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="background:{T["chip_bg"]};border:1px solid {T["chip_border"]};
+                        border-radius:10px;padding:14px 16px;">
+              <div style="font-size:11px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;
+                          color:{T["text_secondary"]};margin-bottom:6px;">Model Version</div>
+              <div style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;
+                          color:{T["teal"]};">2.0</div>
+              <div style="font-size:13px;color:{T["text_secondary"]};margin-top:2px;">September 2025</div>
+            </div>
+            <div style="background:{T["chip_bg"]};border:1px solid {T["chip_border"]};
+                        border-radius:10px;padding:14px 16px;">
+              <div style="font-size:11px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;
+                          color:{T["text_secondary"]};margin-bottom:6px;">Patient Cohort</div>
+              <div style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;
+                          color:{T["teal"]};">≥ 65</div>
+              <div style="font-size:13px;color:{T["text_secondary"]};margin-top:2px;">Years of age</div>
+            </div>
+            <div style="background:{T["chip_bg"]};border:1px solid {T["chip_border"]};
+                        border-radius:10px;padding:14px 16px;">
+              <div style="font-size:11px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;
+                          color:{T["text_secondary"]};margin-bottom:6px;">Prediction Windows</div>
+              <div style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;
+                          color:{T["teal"]};">7 / 14 / 30</div>
+              <div style="font-size:13px;color:{T["text_secondary"]};margin-top:2px;">Day mortality</div>
+            </div>
+            <div style="background:{T["chip_bg"]};border:1px solid {T["chip_border"]};
+                        border-radius:10px;padding:14px 16px;">
+              <div style="font-size:11px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;
+                          color:{T["text_secondary"]};margin-bottom:6px;">Confidence</div>
+              <div style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;
+                          color:{T["teal"]};">95% CI</div>
+              <div style="font-size:13px;color:{T["text_secondary"]};margin-top:2px;">Delta method</div>
+            </div>
+          </div>
         </div>""", unsafe_allow_html=True)
 
-    with a2:
+    with r1b:
         st.markdown(f"""
-        <div class="icu-card">
-          <div style="font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;
-                      color:{T["teal"]};letter-spacing:0.08em;text-transform:uppercase;margin-bottom:14px;">
-            Variables, Coefficients and Standard Errors</div>""", unsafe_allow_html=True)
-        for var, typ, beta, se, note in [
-            ("Cardiac Arrest",         "Binary (0/1)", "+2.7268", "±0.412", "Strongest predictor"),
-            ("Loge INR",               "ln(INR≥0.5)", "+1.7000", "±0.298", "Coagulopathy"),
-            ("Mechanical Ventilation", "Binary (0/1)", "+0.9076", "±0.187", "Respiratory failure"),
-            ("Loge Age",               "ln(Age)",      "+1.5523", "±0.341", "Age-adjusted risk"),
-            ("Loge CCI",               "ln(CCI≥0.5)", "+0.8597", "±0.203", "Comorbidity burden"),
-            ("CFS Score",              "1–8 scale",    "+0.0598", "±0.028", "Frailty"),
-            ("Hematocrit",             "%",            "−0.0583", "±0.018", "Anaemia / perfusion"),
-            ("Chloride",               "mmol/L",       "−0.00096","±0.00042","Electrolyte balance"),
-        ]:
-            clr = "#f43f5e" if "+" in beta else "#10b981"
-            st.markdown(f"""
-            <div class="coeff-row">
-              <div style="flex:2;font-size:15px;color:{T["text_primary"]};font-weight:500;">{var}</div>
-              <div style="font-family:'JetBrains Mono',monospace;font-size:14px;color:{clr};font-weight:700;min-width:72px;">{beta}</div>
-              <div style="font-size:13px;color:{T["text_secondary"]};min-width:66px;">{se}</div>
-              <div style="flex:2;font-size:13px;color:{T["text_secondary"]};">{note}</div>
-            </div>""", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+        <div class="icu-card" style="height:100%;box-sizing:border-box;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;
+                      color:{T["teal"]};margin-bottom:16px;">Survival Function</div>
+
+          <div style="font-size:15px;color:{T["text_secondary"]};line-height:1.75;margin-bottom:20px;">
+            The CPH survival function estimates the probability of surviving to day <em>t</em>
+            given a patient's composite risk score.
+          </div>
+
+          <div style="background:{T["chip_bg"]};border:1px solid {T["chip_border"]};
+                      border-radius:10px;padding:18px 20px;margin-bottom:20px;text-align:center;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:17px;
+                        font-weight:600;color:{T["teal"]};letter-spacing:0.04em;">
+              S(t) = exp(−H₀(t) · exp(Σ βᵢXᵢ))
+            </div>
+          </div>
+
+          <div style="font-size:14px;color:{T["text_secondary"]};line-height:1.8;">
+            <div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid {T["border"]};">
+              <div style="font-family:'JetBrains Mono',monospace;color:{T["teal"]};
+                          min-width:44px;font-weight:600;">H₀(t)</div>
+              <div>Baseline cumulative hazard at day <em>t</em></div>
+            </div>
+            <div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid {T["border"]};">
+              <div style="font-family:'JetBrains Mono',monospace;color:{T["teal"]};
+                          min-width:44px;font-weight:600;">βᵢ</div>
+              <div>Fixed model coefficients (8 variables)</div>
+            </div>
+            <div style="display:flex;gap:10px;padding:8px 0;">
+              <div style="font-family:'JetBrains Mono',monospace;color:{T["teal"]};
+                          min-width:44px;font-weight:600;">Xᵢ</div>
+              <div>Patient-specific transformed clinical values</div>
+            </div>
+          </div>
+        </div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Row 2: Coefficients table ─────────────────────────────────────────────
     st.markdown(f"""
     <div class="icu-card">
-      <div style="font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;
-                  color:{T["teal"]};letter-spacing:0.08em;text-transform:uppercase;margin-bottom:18px;">
-        Risk Band Clinical Guidance</div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;">""",
-        unsafe_allow_html=True)
-    for rl, cfg in RISK_CFG.items():
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;
+                  color:{T["teal"]};margin-bottom:4px;">Model Coefficients</div>
+      <div style="font-size:14px;color:{T["text_secondary"]};margin-bottom:20px;">
+        Eight variables and their fixed β coefficients. Positive values increase mortality risk;
+        negative values are protective.
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(8,1fr) 0;overflow-x:auto;">
+        <div style="display:grid;grid-template-columns:2fr 1.2fr 0.9fr 0.9fr 1.4fr;
+                    gap:0;font-size:11px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;
+                    color:{T["text_secondary"]};padding:0 0 10px 0;border-bottom:2px solid {T["border"]};">
+          <div>Variable</div><div>Type</div><div>β</div><div>SE(β)</div><div>Clinical Role</div>
+        </div>
+      </div>""", unsafe_allow_html=True)
+
+    rows_data = [
+        ("Cardiac Arrest",         "Binary (0/1)",  "+2.7268", "±0.412",   "#f43f5e", "Strongest predictor of mortality"),
+        ("Loge INR",               "ln(INR ≥ 0.5)", "+1.7000", "±0.298",   "#f43f5e", "Coagulopathy severity"),
+        ("Loge Age",               "ln(Age)",        "+1.5523", "±0.341",   "#f43f5e", "Age-adjusted mortality risk"),
+        ("Mechanical Ventilation", "Binary (0/1)",   "+0.9076", "±0.187",   "#f43f5e", "Acute respiratory failure"),
+        ("Loge CCI",               "ln(CCI ≥ 0.5)", "+0.8597", "±0.203",   "#f43f5e", "Comorbidity burden"),
+        ("CFS Score",              "1–8 scale",      "+0.0598", "±0.028",   "#f43f5e", "Frailty at admission"),
+        ("Hematocrit",             "%",              "−0.0583", "±0.018",   "#10b981", "Anaemia / perfusion proxy"),
+        ("Chloride",               "mmol/L",         "−0.00096","±0.00042", "#10b981", "Electrolyte balance"),
+    ]
+    for i, (var, typ, beta, se, clr, note) in enumerate(rows_data):
+        border = f"border-bottom:1px solid {T['border']};" if i < len(rows_data)-1 else ""
         st.markdown(f"""
-        <div style="background:{cfg["bg"]};border:1px solid {cfg["border"]};border-radius:12px;padding:16px;">
-          <div style="font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:{cfg["color"]};margin-bottom:6px;">{rl}</div>
-          <div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:{cfg["color"]};margin-bottom:8px;">{cfg["band"]}</div>
-          <div style="font-size:14px;color:{T["text_secondary"]};line-height:1.7;">{cfg["rec"]}</div>
+        <div style="display:grid;grid-template-columns:2fr 1.2fr 0.9fr 0.9fr 1.4fr;
+                    gap:0;padding:13px 0;{border}align-items:center;">
+          <div style="font-size:15px;font-weight:600;color:{T["text_primary"]};">{var}</div>
+          <div style="font-size:13px;color:{T["text_secondary"]};font-family:'JetBrains Mono',monospace;">{typ}</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:15px;
+                      font-weight:700;color:{clr};">{beta}</div>
+          <div style="font-size:13px;color:{T["text_secondary"]};font-family:'JetBrains Mono',monospace;">{se}</div>
+          <div style="font-size:13px;color:{T["text_secondary"]};">{note}</div>
         </div>""", unsafe_allow_html=True)
-    st.markdown("</div></div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
     st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("Begin Assessment", type="primary"):
+
+    # ── Row 3: v2.0 improvements + Risk bands ────────────────────────────────
+    r3a, r3b = st.columns([2, 3], gap="large")
+
+    with r3a:
+        st.markdown(f"""
+        <div class="icu-card" style="height:100%;box-sizing:border-box;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;
+                      color:{T["teal"]};margin-bottom:16px;">Version 2.0 Improvements</div>
+          <div style="display:flex;flex-direction:column;gap:14px;">""", unsafe_allow_html=True)
+
+        improvements = [
+            ("95% Confidence Intervals", "Computed via delta method on composite score, propagating SE from all 8 coefficients."),
+            ("Log Floor Fix", "CCI = 0 uses ln(0.5) instead of ln(0), preventing model singularity for patients with no comorbidities."),
+            ("INR Floor",     "INR clamped to ≥ 0.5 minimum, preventing distortion from near-zero erroneous lab values."),
+            ("Platelet Flags","Clinical severity alerts for thrombocytopaenia displayed separately — not included in CPH score."),
+        ]
+        for title, desc in improvements:
+            st.markdown(f"""
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <div style="width:6px;height:6px;border-radius:50%;background:{T["teal"]};
+                          flex-shrink:0;margin-top:6px;"></div>
+              <div>
+                <div style="font-size:14px;font-weight:700;color:{T["text_primary"]};
+                            margin-bottom:3px;">{title}</div>
+                <div style="font-size:13px;color:{T["text_secondary"]};line-height:1.65;">{desc}</div>
+              </div>
+            </div>""", unsafe_allow_html=True)
+
+        st.markdown("</div></div>", unsafe_allow_html=True)
+
+    with r3b:
+        st.markdown(f"""
+        <div class="icu-card" style="height:100%;box-sizing:border-box;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;
+                      color:{T["teal"]};margin-bottom:16px;">Risk Band Clinical Guidance</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">""", unsafe_allow_html=True)
+
+        for rl, cfg in RISK_CFG.items():
+            st.markdown(f"""
+            <div style="display:flex;gap:14px;align-items:flex-start;
+                        background:{cfg["bg"]};border:1px solid {cfg["border"]};
+                        border-radius:10px;padding:14px 16px;">
+              <div style="flex-shrink:0;">
+                <div style="font-family:'Space Grotesk',sans-serif;font-size:13px;
+                            font-weight:800;color:{cfg["color"]};letter-spacing:0.06em;
+                            text-transform:uppercase;">{rl}</div>
+                <div style="font-family:'Space Grotesk',sans-serif;font-size:18px;
+                            font-weight:700;color:{cfg["color"]};line-height:1;margin-top:2px;">
+                  {cfg["band"]}</div>
+              </div>
+              <div style="width:1px;background:{cfg["border"]};flex-shrink:0;
+                          align-self:stretch;"></div>
+              <div style="font-size:13px;color:{T["text_secondary"]};line-height:1.65;">
+                {cfg["rec"]}</div>
+            </div>""", unsafe_allow_html=True)
+
+        st.markdown("</div></div>", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Disclaimer + CTA ─────────────────────────────────────────────────────
+    st.markdown(f"""
+    <div style="background:{T["warn_bg"]};border:1px solid {T["warn_border"]};
+                border-radius:12px;padding:18px 22px;margin-bottom:24px;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;
+                  color:{T["warn_text"]};margin-bottom:8px;">Clinical Disclaimer</div>
+      <div style="font-size:14px;color:{T["text_secondary"]};line-height:1.75;">
+        This tool is a <strong style="color:{T["text_primary"]};">decision-support aid</strong>
+        for trained clinical professionals only. It does not replace multidisciplinary team
+        judgement, direct clinical assessment, or institutional protocols. All outputs are
+        probabilistic estimates with inherent uncertainty, represented by 95% confidence intervals.
+        Results must be interpreted in the full clinical context of each patient.
+      </div>
+    </div>""", unsafe_allow_html=True)
+
+    if st.button("Begin Patient Assessment", type="primary", key="about_cta"):
         st.session_state.page = "calculator"; st.rerun()
